@@ -1,0 +1,32 @@
+{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:8080",
+      "sslPort": 0
+    }
+  },
+  "profiles": {
+    "mdviewx (WinAppSDK Unpackaged)": {
+      "commandName": "Project",
+      "commandLineArgs": "../../docs/index.md",
+      "compatibleTargetFramework": "windows"
+    },
+    "mdviewx (WinAppSDK Packaged)": {
+      "commandName": "MsixPackage",
+      "compatibleTargetFramework": "windows"
+    },
+    "mdviewx (Desktop)": {
+      "commandName": "Project",
+      "commandLineArgs": "../../docs/index.md",
+      "compatibleTargetFramework": "desktop"
+    },
+    "mdviewx (Desktop WSL2)": {
+      "commandName": "WSL2",
+      "commandLineArgs": "{ProjectDir}/bin/Debug/net10.0-desktop/mdviewx.dll",
+      "distributionName": "",
+      "compatibleTargetFramework": "desktop"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=mdviewx
+Comment=Markdown viewer
+# Exec is rewritten with the absolute binary path by install-linux.sh.
+Exec=mdviewx %f
+Icon=mdviewx
+Terminal=false
+Categories=Office;Viewer;TextTools;
+MimeType=text/markdown;text/x-markdown;
