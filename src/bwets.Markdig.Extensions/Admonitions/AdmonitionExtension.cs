@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Markdig;
 using Markdig.Helpers;
@@ -5,9 +6,8 @@ using Markdig.Parsers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
-using Block = Markdig.Syntax.Block;
 
-namespace mdviewx.Services;
+namespace Bwets.Markdig.Extensions.Admonitions;
 
 /// <summary>
 /// A parsed admonition / callout, produced from either Docusaurus (<c>:::type[title] ... :::</c>)
@@ -213,7 +213,7 @@ internal static class AdmonitionInfo
         var bracket = info.IndexOf('[');
         if (bracket >= 0)
         {
-            kind = info[..bracket].Trim();
+            kind = info.Substring(0, bracket).Trim();
             var close = info.LastIndexOf(']');
             if (close > bracket)
             {
@@ -229,8 +229,8 @@ internal static class AdmonitionInfo
             }
             else
             {
-                kind = info[..space];
-                var rest = info[(space + 1)..].Trim();
+                kind = info.Substring(0, space);
+                var rest = info.Substring(space + 1).Trim();
                 if (rest.Length > 0)
                 {
                     title = rest;
@@ -259,8 +259,8 @@ internal static class AdmonitionInfo
         }
         else
         {
-            kind = info[..space];
-            rest = info[(space + 1)..].Trim();
+            kind = info.Substring(0, space);
+            rest = info.Substring(space + 1).Trim();
         }
 
         var quote = rest.IndexOf('"');
@@ -311,7 +311,7 @@ internal static class AdmonitionInfo
 /// <summary>Renders an <see cref="AdmonitionBlock"/> as a styled callout.</summary>
 public sealed class AdmonitionRenderer : HtmlObjectRenderer<AdmonitionBlock>
 {
-    private static readonly Dictionary<string, string> Synonyms = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> Synonyms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["note"] = "note", ["seealso"] = "note",
         ["abstract"] = "abstract", ["summary"] = "abstract", ["tldr"] = "abstract",
@@ -327,7 +327,7 @@ public sealed class AdmonitionRenderer : HtmlObjectRenderer<AdmonitionBlock>
         ["quote"] = "quote", ["cite"] = "quote",
     };
 
-    private static readonly Dictionary<string, string> Icons = new()
+    private static readonly Dictionary<string, string> Icons = new Dictionary<string, string>
     {
         ["note"] = "📝", ["abstract"] = "📑", ["info"] = "ℹ️", ["tip"] = "💡",
         ["success"] = "✅", ["question"] = "❓", ["warning"] = "⚠️", ["danger"] = "🚨",
@@ -367,7 +367,7 @@ public sealed class AdmonitionRenderer : HtmlObjectRenderer<AdmonitionBlock>
     }
 
     private static string Capitalize(string s) =>
-        s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+        s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
 }
 
 /// <summary>Markdig extension that enables Docusaurus and MkDocs admonitions.</summary>
@@ -386,7 +386,7 @@ public sealed class AdmonitionExtension : IMarkdownExtension
         }
     }
 
-    public void Setup(MarkdownPipeline pipeline, Markdig.Renderers.IMarkdownRenderer renderer)
+    public void Setup(MarkdownPipeline pipeline, IMarkdownRenderer renderer)
     {
         if (renderer is HtmlRenderer html && !html.ObjectRenderers.Contains<AdmonitionRenderer>())
         {

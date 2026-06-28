@@ -11,6 +11,7 @@
       <Deploy />
     </Project>
   </Folder>
+  <Project Path="bwets.Markdig.Extensions/bwets.Markdig.Extensions.csproj" />
   <Project Path="mdviewx.MauiControls/mdviewx.MauiControls.csproj">
     <Deploy />
   </Project>

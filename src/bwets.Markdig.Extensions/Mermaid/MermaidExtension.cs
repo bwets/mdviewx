@@ -1,14 +1,15 @@
+using System;
 using Markdig;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 
-namespace mdviewx.Services;
+namespace Bwets.Markdig.Extensions.Mermaid;
 
 /// <summary>
-/// Renders fenced <c>```mermaid</c> code blocks as <c>&lt;pre class="mermaid"&gt;</c> so the
+/// Renders fenced <c>```mermaid</c> code blocks as <c>&lt;pre class="mermaid"&gt;</c> so a
 /// client-side mermaid library turns them into diagrams. All other code blocks fall back to the
-/// default rendering (and to highlight.js).
+/// default rendering.
 /// </summary>
 public sealed class MermaidCodeBlockRenderer : CodeBlockRenderer
 {
@@ -37,7 +38,7 @@ public sealed class MermaidExtension : IMarkdownExtension
     {
     }
 
-    public void Setup(MarkdownPipeline pipeline, Markdig.Renderers.IMarkdownRenderer renderer)
+    public void Setup(MarkdownPipeline pipeline, IMarkdownRenderer renderer)
     {
         if (renderer is not HtmlRenderer html)
         {

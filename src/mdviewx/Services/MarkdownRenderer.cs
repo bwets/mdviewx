@@ -7,6 +7,7 @@ using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
+using Bwets.Markdig.Extensions.Html;
 using Path = System.IO.Path;
 #if WINDOWS
 using Microsoft.Windows.AppLifecycle;
@@ -18,32 +19,27 @@ namespace mdviewx.Services;
 
 public sealed class MarkdownRenderer : IMarkdownRenderer
 {
+    // Modular markdown features (from the Bwets.Markdig.Extensions library). Each is independent;
+    // enable only what's needed. mdviewx uses the full language set for highlighting.
+    private static readonly MarkdownHtmlFeatures Features = new MarkdownHtmlFeatures()
+        .UseSyntaxHighlighting(extendedLanguages: true)
+        .UseMermaid()
+        .UseAdmonitions();
+
     private static readonly MarkdownPipeline Pipeline = BuildPipeline();
+    private static bool _assetsWritten;
 
     private static MarkdownPipeline BuildPipeline()
     {
         var builder = new MarkdownPipelineBuilder()
             .UseYamlFrontMatter()
             .UseAdvancedExtensions();
-        builder.Extensions.Add(new AdmonitionExtension());
-        builder.Extensions.Add(new MermaidExtension());
+        Features.Configure(builder);
         return builder.Build();
     }
 
-    // GitHub light/dark highlight themes are small enough to inline; the large JS libraries
-    // (highlight.js, mermaid) are written next to the preview as sidecar files (see EnsureAssets).
-    private static readonly string HighlightCss = BuildHighlightCss();
-    private static bool _assetsWritten;
-
-    private static string BuildHighlightCss()
-    {
-        var light = ReadEmbedded("github.min.css");
-        var dark = ReadEmbedded("github-dark.min.css");
-        return $"{light}\n@media (prefers-color-scheme: dark) {{\n{dark}\n}}";
-    }
-
     /// <summary>
-    /// Writes the bundled JS libraries next to the preview files once, so each preview can reference
+    /// Writes the features' JS/CSS assets next to the preview files once, so each preview references
     /// them via a relative &lt;script src&gt; instead of inlining megabytes into every document.
     /// </summary>
     private static void EnsureAssets(string outputDir)
@@ -53,29 +49,12 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
             return;
         }
 
-        File.WriteAllText(Path.Combine(outputDir, "highlight.min.js"), ReadEmbedded("highlight.min.js"));
-        File.WriteAllText(Path.Combine(outputDir, "mermaid.min.js"), ReadEmbedded("mermaid.min.js"));
+        foreach (var asset in Features.Assets)
+        {
+            File.WriteAllText(Path.Combine(outputDir, asset.FileName), asset.Content);
+        }
+
         _assetsWritten = true;
-    }
-
-    private static string ReadEmbedded(string endsWith)
-    {
-        var assembly = typeof(MarkdownRenderer).Assembly;
-        var name = assembly.GetManifestResourceNames()
-            .FirstOrDefault(n => n.EndsWith(endsWith, StringComparison.OrdinalIgnoreCase));
-        if (name is null)
-        {
-            return string.Empty;
-        }
-
-        using var stream = assembly.GetManifestResourceStream(name);
-        if (stream is null)
-        {
-            return string.Empty;
-        }
-
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
     }
 
     public string? GetStartupFilePath()
@@ -204,7 +183,9 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
         // anchors in the produced HTML.
         var headings = ExtractHeadings(document);
 
-        var html = BuildDocument(Path.GetFileName(fullPath), body);
+        var head = Features.RenderHead(MarkdownAssetDelivery.External);
+        var scripts = Features.RenderBodyEnd(MarkdownAssetDelivery.External);
+        var html = BuildDocument(Path.GetFileName(fullPath), body, head, scripts);
 
         var outputDir = Path.Combine(Path.GetTempPath(), "mdviewx");
         Directory.CreateDirectory(outputDir);
@@ -336,7 +317,7 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
         }
     }
 
-    private static string BuildDocument(string title, string body) => $$"""
+    private static string BuildDocument(string title, string body, string head, string scripts) => $$"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -366,8 +347,6 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
                     font-size: 85%;
                 }
                 pre { margin: 1em 0; overflow: auto; }
-                pre code.hljs { padding: 1rem; border-radius: 6px; }
-                pre.mermaid { background: transparent; text-align: center; line-height: normal; }
                 blockquote {
                     margin: 0;
                     padding: 0 1em;
@@ -378,39 +357,6 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
                 th, td { border: 1px solid #d0d7de; padding: 6px 13px; }
                 tr:nth-child(2n) { background: #f6f8fa; }
                 img { max-width: 100%; }
-                .admonition {
-                    margin: 1em 0;
-                    border: 1px solid #d0d7de;
-                    border-left: 4px solid var(--adm, #448aff);
-                    border-radius: 6px;
-                    overflow: hidden;
-                    background: #ffffff;
-                }
-                .admonition-title {
-                    display: flex;
-                    align-items: center;
-                    gap: .5em;
-                    font-weight: 600;
-                    padding: .5em .9em;
-                    background: var(--adm-bg, rgba(68,138,255,.1));
-                }
-                .admonition-icon { font-style: normal; line-height: 1; }
-                .admonition-body { padding: .2em .9em; }
-                .admonition-body > :first-child { margin-top: .6em; }
-                .admonition-body > :last-child { margin-bottom: .6em; }
-                details.admonition > summary.admonition-title { cursor: pointer; list-style: none; }
-                details.admonition > summary.admonition-title::-webkit-details-marker { display: none; }
-                .admonition-note     { --adm: #448aff; --adm-bg: rgba(68,138,255,.1); }
-                .admonition-abstract { --adm: #00b0ff; --adm-bg: rgba(0,176,255,.1); }
-                .admonition-info     { --adm: #00b8d4; --adm-bg: rgba(0,184,212,.1); }
-                .admonition-tip      { --adm: #00bfa5; --adm-bg: rgba(0,191,165,.1); }
-                .admonition-success  { --adm: #00c853; --adm-bg: rgba(0,200,83,.1); }
-                .admonition-question { --adm: #9c27b0; --adm-bg: rgba(156,39,176,.1); }
-                .admonition-warning  { --adm: #ff9100; --adm-bg: rgba(255,145,0,.12); }
-                .admonition-danger   { --adm: #ff1744; --adm-bg: rgba(255,23,68,.1); }
-                .admonition-bug      { --adm: #f50057; --adm-bg: rgba(245,0,87,.1); }
-                .admonition-example  { --adm: #7c4dff; --adm-bg: rgba(124,77,255,.1); }
-                .admonition-quote    { --adm: #9e9e9e; --adm-bg: rgba(158,158,158,.12); }
                 @media (prefers-color-scheme: dark) {
                     body { color: #e6edf3; background: #0d1117; }
                     h1, h2 { border-color: #30363d; }
@@ -419,25 +365,13 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
                     blockquote { color: #9198a1; border-color: #30363d; }
                     th, td { border-color: #30363d; }
                     tr:nth-child(2n) { background: #161b22; }
-                    .admonition { background: #0d1117; border-color: #30363d; }
                 }
             </style>
-            <style>
-            {{HighlightCss}}
-            </style>
+            {{head}}
         </head>
         <body>
         {{body}}
-        <script src="highlight.min.js"></script>
-        <script>hljs.highlightAll();</script>
-        <script src="mermaid.min.js"></script>
-        <script>
-            (function () {
-                var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default' });
-                mermaid.run();
-            })();
-        </script>
+        {{scripts}}
         </body>
         </html>
         """;

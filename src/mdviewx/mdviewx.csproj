@@ -52,15 +52,8 @@
     <PackageReference Include="Markdig" />
   </ItemGroup>
 
-  <!-- Offline syntax-highlighting assets, inlined into the rendered HTML at runtime. -->
   <ItemGroup>
-    <EmbeddedResource Include="Highlighting\highlight.min.js" />
-    <EmbeddedResource Include="Highlighting\github.min.css" />
-    <EmbeddedResource Include="Highlighting\github-dark.min.css" />
-    <EmbeddedResource Include="Highlighting\mermaid.min.js" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\bwets.Markdig.Extensions\bwets.Markdig.Extensions.csproj" />
     <ProjectReference Include="..\mdviewx.MauiControls\mdviewx.MauiControls.csproj" />
   </ItemGroup>
 
