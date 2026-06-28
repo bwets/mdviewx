@@ -11,9 +11,6 @@
       <Deploy />
     </Project>
   </Folder>
-  <Project Path="mdviewx.MauiControls/mdviewx.MauiControls.csproj">
-    <Deploy />
-  </Project>
   <Project Path="mdviewx/mdviewx.csproj">
     <Deploy />
   </Project>

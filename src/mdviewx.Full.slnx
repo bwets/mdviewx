@@ -14,9 +14,6 @@
   <Folder Name="/Libraries/">
     <Project Path="../../bwets.Markdig.Extensions/src/bwets.Markdig.Extensions/bwets.Markdig.Extensions.csproj" />
   </Folder>
-  <Project Path="mdviewx.MauiControls/mdviewx.MauiControls.csproj">
-    <Deploy />
-  </Project>
   <Project Path="mdviewx/mdviewx.csproj">
     <Deploy />
   </Project>

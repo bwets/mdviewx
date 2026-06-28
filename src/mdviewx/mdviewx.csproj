@@ -39,7 +39,6 @@
       Toolkit;
       Logging;
       LoggingSerilog;
-      MauiEmbedding;
       MVUX;
       Configuration;
       Localization;
@@ -67,10 +66,6 @@
 
   <ItemGroup Condition="'$(UseBwetsReferences)' != 'true'">
     <PackageReference Include="bwets.Markdig.Extensions" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\mdviewx.MauiControls\mdviewx.MauiControls.csproj" />
   </ItemGroup>
 
 </Project>

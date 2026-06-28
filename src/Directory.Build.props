@@ -7,12 +7,6 @@
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
-    <!-- Align the Uno SDK's implicit MAUI Embedding packages with the upgraded Maui packages.
-         No published Uno.Sdk (stable or 6.7 dev) targets Maui 10.0.80 / WindowsAppSDK 1.8 yet,
-         so both versions are pinned forward here. -->
-    <MauiVersion>10.0.80</MauiVersion>
-    <WinAppSdkVersion>1.8.251106002</WinAppSdkVersion>
-
     <!--
       Adding NoWarn to remove build warnings
       NU1507: Warning when there are multiple package sources when using CPM with no source mapping
