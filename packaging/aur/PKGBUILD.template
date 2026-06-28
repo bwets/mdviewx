@@ -1,0 +1,28 @@
+# Maintainer: bwets
+# This file is rendered by the release workflow (__VERSION__ / __SHA256__ are substituted).
+pkgname=mdviewx
+pkgver=__VERSION__
+pkgrel=1
+pkgdesc="A fast, offline, feature-rich Markdown viewer (Uno Platform)"
+arch=('x86_64')
+url="https://github.com/bwets/mdviewx"
+license=('MIT')
+depends=('gtk3' 'webkit2gtk-4.1' 'hicolor-icon-theme')
+# Self-contained .NET binaries must not be stripped.
+options=('!strip')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/bwets/mdviewx/releases/download/v$pkgver/mdviewx-$pkgver-linux-x64.tar.gz")
+sha256sums=('__SHA256__')
+
+package() {
+  local app="$srcdir/mdviewx-$pkgver-linux-x64"
+
+  install -dm755 "$pkgdir/opt/$pkgname"
+  cp -a "$app/." "$pkgdir/opt/$pkgname/"
+  chmod 755 "$pkgdir/opt/$pkgname/mdviewx"
+
+  install -dm755 "$pkgdir/usr/bin"
+  ln -s "/opt/$pkgname/mdviewx" "$pkgdir/usr/bin/mdviewx"
+
+  install -Dm644 "$app/mdviewx.desktop" "$pkgdir/usr/share/applications/mdviewx.desktop"
+  install -Dm644 "$app/mdviewx.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/mdviewx.svg"
+}

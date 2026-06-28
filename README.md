@@ -66,7 +66,7 @@ In Visual Studio, pick a launch profile and run — the default startup document
 
 ### File associations
 - **Windows (packaged/MSIX):** `.md`/`.markdown` are declared in `Package.appxmanifest`; installing the packaged app registers it as a handler.
-- **Linux:** run `src/packaging/linux/install-linux.sh <path-to-mdviewx>` to install a `.desktop` entry and set it as the default markdown handler via `xdg-mime`.
+- **Linux:** run `packaging/linux/install-linux.sh <path-to-mdviewx>` to install a `.desktop` entry and set it as the default markdown handler via `xdg-mime`. Prebuilt binaries (and `.deb`/AUR packages) are published via the [release workflow](packaging/README.md).
 
 ---
 
