@@ -68,7 +68,9 @@ jobs:
           $signtool = Join-Path $sdk.FullName "x64/signtool.exe"
           $msix = "MarkdownBlaze-$env:VERSION-win-x64.msix"
           & $makeappx pack /o /d $pub /p $msix
-          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=bwets" -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5)
+          # Self-sign with a cert whose subject matches the manifest Publisher (required for sideload).
+          [xml]$m = Get-Content "$pub/AppxManifest.xml"
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $m.Package.Identity.Publisher -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5)
           & $signtool sign /fd SHA256 /sha1 $cert.Thumbprint $msix
           Export-Certificate -Cert $cert -FilePath "MarkdownBlaze-$env:VERSION.cer" | Out-Null
 
