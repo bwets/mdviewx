@@ -7,7 +7,7 @@ pkgdesc="A fast, offline, feature-rich Markdown viewer (Photino + Blazor)"
 arch=('x86_64')
 url="https://github.com/bwets/MarkdownBlaze"
 license=('MIT')
-depends=('gtk3' 'webkit2gtk-4.1' 'hicolor-icon-theme')
+depends=('gtk3' 'webkit2gtk-4.1' 'hicolor-icon-theme' 'desktop-file-utils' 'shared-mime-info')
 # Self-contained .NET binaries must not be stripped.
 options=('!strip')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/bwets/MarkdownBlaze/releases/download/v$pkgver/MarkdownBlaze-$pkgver-linux-x64.tar.gz")
