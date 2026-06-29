@@ -133,7 +133,7 @@ jobs:
             *.deb
 
   release:
-    needs: [setup, windows, linux]
+    needs: [setup, windows, linux, archpkg]
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.setup.outputs.version }}
@@ -145,7 +145,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd dist
-          find . -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.deb' -o -name '*.msix' -o -name '*-setup.exe' \) -print0 \
+          find . -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.deb' -o -name '*.msix' -o -name '*-setup.exe' -o -name '*.pkg.tar.zst' \) -print0 \
             | xargs -0 sha256sum > ../SHA256SUMS
           cat ../SHA256SUMS
 
@@ -159,6 +159,7 @@ jobs:
             dist/**/*.zip
             dist/**/*.tar.gz
             dist/**/*.deb
+            dist/**/*.pkg.tar.zst
             dist/**/*.msix
             dist/**/*-setup.exe
             dist/**/*.cer
@@ -234,31 +235,39 @@ jobs:
           $msix = (Get-ChildItem dist -Recurse -Filter *.msix | Select-Object -First 1).FullName
           msstore publish "$msix" -id ${{ secrets.STORE_PRODUCT_ID }}
 
-  # Native Arch package (.pkg.tar.zst) attached to the release — installable with `pacman -U`,
-  # no AUR needed. Built with makepkg from the same PKGBUILD used for AUR.
+  # Native Arch package (.pkg.tar.zst) — built before the release from the locally-built tarball,
+  # then included in the release alongside the .deb. Installable with `pacman -U`, no AUR needed.
   archpkg:
-    needs: [setup, release]
+    needs: [setup, linux]
     runs-on: ubuntu-latest
     container: archlinux:base-devel
     steps:
-      - name: Install tools
-        run: pacman -Syu --noconfirm git curl sudo github-cli
+      - name: Install git (for checkout)
+        run: pacman -Syu --noconfirm git
       - uses: actions/checkout@v4
-      - name: Build pacman package
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: linux
+      - name: Build pacman package (from the local tarball)
         run: |
           set -euo pipefail
           ver="${{ needs.setup.outputs.version }}"
-          url="https://github.com/bwets/MarkdownBlaze/releases/download/v$ver/MarkdownBlaze-$ver-linux-x64.tar.gz"
-          curl -fsSL -o src.tar.gz "$url"
-          sha=$(sha256sum src.tar.gz | cut -d' ' -f1)
-          sed -e "s/__VERSION__/$ver/g" -e "s/__SHA256__/$sha/g" packaging/aur/PKGBUILD.template > PKGBUILD
           useradd -m builder
-          cp PKGBUILD /home/builder/
-          chown -R builder:builder /home/builder
-          sudo -u builder bash -c 'cd ~ && makepkg -f --noconfirm'
-          cp /home/builder/*.pkg.tar.zst .
+          build=/home/builder/build
+          install -d -o builder "$build"
+          # Place the locally-built tarball under the name the PKGBUILD source expects, so makepkg
+          # uses it instead of downloading the (not-yet-published) release URL.
+          cp "linux/MarkdownBlaze-$ver-linux-x64.tar.gz" "$build/MarkdownBlaze-$ver.tar.gz"
+          sha=$(sha256sum "$build/MarkdownBlaze-$ver.tar.gz" | cut -d' ' -f1)
+          sed -e "s/__VERSION__/$ver/g" -e "s/__SHA256__/$sha/g" packaging/aur/PKGBUILD.template > "$build/PKGBUILD"
+          chown -R builder:builder "$build"
+          # --nodeps: runtime libs (gtk3, webkit2gtk-4.1) aren't needed to repackage a prebuilt
+          # binary; they remain declared so `pacman -U` resolves them on install.
+          sudo -u builder bash -c "cd '$build' && makepkg -f --nodeps --noconfirm"
+          cp "$build"/*.pkg.tar.zst .
           ls -1 *.pkg.tar.zst
-      - name: Attach to the release
-        run: gh release upload "v${{ needs.setup.outputs.version }}" *.pkg.tar.zst --clobber
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch
+          path: '*.pkg.tar.zst'
