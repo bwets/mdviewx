@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MarkdownBlaze": {
+      "commandName": "Project",
+      "commandLineArgs": "docs/index.md"
+    }
+  }
+}
