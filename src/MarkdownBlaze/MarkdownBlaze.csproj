@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <!-- WinExe = Windows GUI subsystem, so launching never opens a console window. -->
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>MarkdownBlaze</RootNamespace>
-    <!-- Prototype: opt out of the solution's central package management + warnings-as-errors. -->
+    <!-- Opt out of the solution's central package management + warnings-as-errors. -->
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
