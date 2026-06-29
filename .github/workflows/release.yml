@@ -16,6 +16,10 @@ on:
         description: "Also update winget (requires WINGET_TOKEN; package must already exist)"
         type: boolean
         default: false
+      publish_store:
+        description: "Also submit to the Microsoft Store (requires AZURE_AD_*/SELLER_ID/STORE_PRODUCT_ID; app must be live + free)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -205,3 +209,56 @@ jobs:
           release-tag: v${{ needs.setup.outputs.version }}
           installers-regex: '-win-x64-setup\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
+
+  store:
+    needs: [setup, windows]
+    if: ${{ inputs.publish_store }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: dist
+      - name: Set up Microsoft Store Developer CLI
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+      - name: Configure credentials
+        run: >
+          msstore reconfigure
+          --tenantId ${{ secrets.AZURE_AD_TENANT_ID }}
+          --sellerId ${{ secrets.SELLER_ID }}
+          --clientId ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          --clientSecret ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+      - name: Publish package to the Store
+        shell: pwsh
+        run: |
+          $msix = (Get-ChildItem dist -Recurse -Filter *.msix | Select-Object -First 1).FullName
+          msstore publish "$msix" -id ${{ secrets.STORE_PRODUCT_ID }}
+
+  # Native Arch package (.pkg.tar.zst) attached to the release — installable with `pacman -U`,
+  # no AUR needed. Built with makepkg from the same PKGBUILD used for AUR.
+  archpkg:
+    needs: [setup, release]
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install tools
+        run: pacman -Syu --noconfirm git curl sudo github-cli
+      - uses: actions/checkout@v4
+      - name: Build pacman package
+        run: |
+          set -euo pipefail
+          ver="${{ needs.setup.outputs.version }}"
+          url="https://github.com/bwets/MarkdownBlaze/releases/download/v$ver/MarkdownBlaze-$ver-linux-x64.tar.gz"
+          curl -fsSL -o src.tar.gz "$url"
+          sha=$(sha256sum src.tar.gz | cut -d' ' -f1)
+          sed -e "s/__VERSION__/$ver/g" -e "s/__SHA256__/$sha/g" packaging/aur/PKGBUILD.template > PKGBUILD
+          useradd -m builder
+          cp PKGBUILD /home/builder/
+          chown -R builder:builder /home/builder
+          sudo -u builder bash -c 'cd ~ && makepkg -f --noconfirm'
+          cp /home/builder/*.pkg.tar.zst .
+          ls -1 *.pkg.tar.zst
+      - name: Attach to the release
+        run: gh release upload "v${{ needs.setup.outputs.version }}" *.pkg.tar.zst --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
