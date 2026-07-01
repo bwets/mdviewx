@@ -25,6 +25,7 @@ public sealed class NavigationService : IDisposable
         _history = history;
         _watcher.Changed += Reload;
         JsBridge.Link += OnLink;
+        JsBridge.FileDropped += OnFileDropped;
     }
 
     public string? CurrentPath { get; private set; }
@@ -66,6 +67,31 @@ public sealed class NavigationService : IDisposable
             _session.Add(full);
         _index = _session.Count - 1;
         SetCurrent(_session[_index]);
+    }
+
+    /// <summary>
+    /// Renders Markdown dropped into the window that has no resolvable file path (WebView2 does not
+    /// expose one). <see cref="CurrentPath"/> stays null, so it is not file-watched and "open
+    /// containing folder" is inert; relative images/links cannot be resolved without a base folder.
+    /// </summary>
+    public void OpenContent(string fileName, string markdown)
+    {
+        var result = _md.RenderText(fileName, markdown);
+        CurrentPath = null;
+        CurrentTitle = result.Title;
+        CurrentHtml = result.BodyHtml;
+        CurrentHeadings = result.Headings;
+        RenderToken++;
+        Changed?.Invoke();
+    }
+
+    private void OnFileDropped(string kind, string a, string b)
+    {
+        switch (kind)
+        {
+            case "path": Navigate(a); break;      // engine gave a real path → open like any other file
+            case "text": OpenContent(a, b); break; // only the file's contents are available
+        }
     }
 
     public void Back() { if (CanBack) { _index--; SetCurrent(_session[_index]); } }
@@ -160,6 +186,7 @@ public sealed class NavigationService : IDisposable
     public void Dispose()
     {
         JsBridge.Link -= OnLink;
+        JsBridge.FileDropped -= OnFileDropped;
         _watcher.Dispose();
     }
 }

@@ -34,9 +34,26 @@ public sealed class MarkdownService
             return null;
 
         var fullPath = Path.GetFullPath(markdownFilePath);
-        var markdown = File.ReadAllText(fullPath);
+        string markdown;
+        try { markdown = File.ReadAllText(fullPath); }
+        catch { return null; } // locked / permission denied / not really a file → caller shows a fallback
         var baseDir = Path.GetDirectoryName(fullPath) ?? string.Empty;
 
+        return RenderCore(markdown, baseDir, fullPath, Path.GetFileName(fullPath));
+    }
+
+    /// <summary>
+    /// Renders raw Markdown that has no backing file path (e.g. a file dropped into the WebView, where
+    /// the real path is not available). Relative links/images cannot be resolved without a base folder.
+    /// </summary>
+    public RenderResult RenderText(string fileName, string markdown)
+    {
+        var name = string.IsNullOrWhiteSpace(fileName) ? "Untitled.md" : fileName.Trim();
+        return RenderCore(markdown ?? string.Empty, string.Empty, name, name);
+    }
+
+    private static RenderResult RenderCore(string markdown, string baseDir, string path, string file)
+    {
         var document = Markdown.Parse(markdown, Pipeline);
         RewriteLinksAndImages(document, baseDir);
 
@@ -48,12 +65,18 @@ public sealed class MarkdownService
         var body = writer.ToString();
 
         var headings = ExtractHeadings(document);
-        var title = DeriveTitle(headings, fullPath);
+        var title = DeriveTitle(headings, path);
 
-        return new RenderResult(fullPath, Path.GetFileName(fullPath), title, body, headings);
+        return new RenderResult(path, file, title, body, headings);
     }
 
     // ---- startup file ---------------------------------------------------------------------------
+
+    /// <summary>File extensions MarkdownBlaze opens (startup argument + drag &amp; drop).</summary>
+    public static readonly string[] SupportedExtensions = [".md", ".markdown", ".mdx", ".txt"];
+
+    public static bool IsSupported(string path) =>
+        SupportedExtensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 
     public string? GetStartupFilePath()
     {
@@ -61,11 +84,19 @@ public sealed class MarkdownService
         {
             if (string.IsNullOrWhiteSpace(arg)) continue;
             var path = arg.Trim().Trim('"');
-            if (!path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!IsSupported(path)) continue;
             var resolved = ResolveExisting(path);
             if (resolved is not null) return resolved;
         }
-        return null;
+        // No readable supported argument → fall back to the bundled manual, shown like any other file.
+        return GetUserManualPath();
+    }
+
+    /// <summary>The bundled user manual shown as a welcome screen when no file is opened.</summary>
+    public string? GetUserManualPath()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "UserManual.md");
+        return File.Exists(path) ? path : null;
     }
 
     private static string? ResolveExisting(string path)

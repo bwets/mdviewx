@@ -42,11 +42,24 @@ document.addEventListener('click', function (e) {
     const nav = a.getAttribute('data-nav');
     if (nav) { e.preventDefault(); DotNet.invokeMethodAsync(ASM, 'OnLink', 'nav', nav); return; }
     const href = a.getAttribute('href') || '';
-    if (href === '' || href.charAt(0) === '#') return; // in-page anchor
-    if (/^(https?:|mailto:)/i.test(href)) {
+    if (href === '' || href.charAt(0) === '#') return; // in-page anchor: let the browser scroll
+
+    // Protocol-relative (//host/…) → treat as https and open externally.
+    if (href.slice(0, 2) === '//') {
+        e.preventDefault();
+        DotNet.invokeMethodAsync(ASM, 'OnLink', 'ext', 'https:' + href);
+        return;
+    }
+    // Anything with a URL scheme (http:, https:, mailto:, tel:, ftp:, …) opens in the OS default
+    // handler — browser, mail client, etc. — instead of navigating the WebView.
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(href)) {
         e.preventDefault();
         DotNet.invokeMethodAsync(ASM, 'OnLink', 'ext', href);
+        return;
     }
+    // Any remaining link is an unresolved relative/root path that isn't in-app navigation; don't let
+    // the WebView navigate away from the app shell.
+    e.preventDefault();
 });
 
 // Keyboard shortcuts -> .NET.
@@ -59,6 +72,72 @@ window.addEventListener('keydown', function (e) {
     else if (e.ctrlKey && (e.key === 'p' || e.key === 'P')) combo = 'ctrl+p';
     else if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) combo = 'ctrl+b';
     if (combo) { e.preventDefault(); DotNet.invokeMethodAsync(ASM, 'OnKey', combo); }
+});
+
+// Mouse side buttons (button 3 = Back, button 4 = Forward) -> history navigation.
+// Act on mouseup, but suppress the WebView's own default on mousedown/auxclick so it doesn't
+// try to navigate on its own.
+window.addEventListener('mousedown', function (e) {
+    if (e.button === 3 || e.button === 4) e.preventDefault();
+});
+window.addEventListener('auxclick', function (e) {
+    if (e.button === 3 || e.button === 4) e.preventDefault();
+});
+window.addEventListener('mouseup', function (e) {
+    if (e.button === 3) { e.preventDefault(); DotNet.invokeMethodAsync(ASM, 'OnKey', 'alt+left'); }
+    else if (e.button === 4) { e.preventDefault(); DotNet.invokeMethodAsync(ASM, 'OnKey', 'alt+right'); }
+});
+
+// ---- File drag & drop -----------------------------------------------------------------------
+// WebView2 does not expose the real path of a dropped file, so we recover a path only where the
+// engine offers one (text/uri-list / file:// — WebKitGTK on Linux does; a File.path from
+// Electron-style hosts) and otherwise fall back to reading the file's text and rendering that.
+function mdDropPath(dt, file) {
+    if (file && file.path) return file.path;
+    let uri = '';
+    try { uri = dt.getData('text/uri-list') || dt.getData('text/plain') || ''; } catch (_) { }
+    uri = (uri.split('\n').find(l => l && l.charAt(0) !== '#') || '').trim();
+    if (uri.slice(0, 7) === 'file://') {
+        try { return decodeURIComponent(new URL(uri).pathname).replace(/^\/([A-Za-z]:)/, '$1'); }
+        catch (_) { }
+    }
+    return '';
+}
+
+function mdHasFiles(e) {
+    return !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).indexOf('Files') !== -1);
+}
+
+['dragenter', 'dragover'].forEach(function (ev) {
+    window.addEventListener(ev, function (e) {
+        if (!mdHasFiles(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        document.body.classList.add('drag-over');
+    });
+});
+['dragleave', 'dragend'].forEach(function (ev) {
+    window.addEventListener(ev, function (e) {
+        if (e.relatedTarget === null) document.body.classList.remove('drag-over');
+    });
+});
+window.addEventListener('drop', function (e) {
+    if (!mdHasFiles(e)) return;
+    e.preventDefault();
+    document.body.classList.remove('drag-over');
+    const dt = e.dataTransfer;
+    const files = Array.from(dt.files || []);
+    const file = files.find(function (f) { return /\.(md|markdown|mdx|txt)$/i.test(f.name); });
+    if (!file) return; // only .md / .markdown / .mdx / .txt are accepted
+
+    const path = mdDropPath(dt, file);
+    if (path) { DotNet.invokeMethodAsync(ASM, 'OnFileDrop', 'path', path, ''); return; }
+
+    const reader = new FileReader();
+    reader.onload = function () {
+        DotNet.invokeMethodAsync(ASM, 'OnFileDrop', 'text', file.name, String(reader.result || ''));
+    };
+    reader.readAsText(file);
 });
 
 // Sidebar resizer (drag updates --sidebar-w; the final width is reported to .NET on release).

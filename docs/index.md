@@ -48,3 +48,6 @@ MarkdownBlaze reloads the view automatically.
 
 Happy reading. Pick a collection above, or jump straight to the
 [map of Great Houses](dune/houses) in the Dune wing.
+
+> 🔗 Testing link behaviour? Open the [Link Handling Test](link-test) page — it exercises browser,
+> email, and other external links alongside in-app navigation and inert local paths.

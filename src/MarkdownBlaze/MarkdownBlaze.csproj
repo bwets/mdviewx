@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Content Update="wwwroot\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="UserManual.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

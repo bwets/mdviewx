@@ -1,8 +1,11 @@
 {
   "profiles": {
-    "MarkdownBlaze": {
+    "Sample Wiki": {
       "commandName": "Project",
       "commandLineArgs": "docs/index.md"
+    },
+    "No file (welcome)": {
+      "commandName": "Project"
     }
   }
 }
