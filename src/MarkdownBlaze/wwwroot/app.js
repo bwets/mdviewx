@@ -70,6 +70,7 @@ window.addEventListener('keydown', function (e) {
     else if (e.key === 'F5') combo = 'f5';
     else if (e.ctrlKey && (e.key === 'r' || e.key === 'R')) combo = 'ctrl+r';
     else if (e.ctrlKey && (e.key === 'p' || e.key === 'P')) combo = 'ctrl+p';
+    else if (e.ctrlKey && (e.key === 'o' || e.key === 'O')) combo = 'ctrl+o';
     else if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) combo = 'ctrl+b';
     if (combo) { e.preventDefault(); DotNet.invokeMethodAsync(ASM, 'OnKey', combo); }
 });

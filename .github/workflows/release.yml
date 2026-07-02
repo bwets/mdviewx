@@ -73,10 +73,13 @@ jobs:
           $pub = "publish/win-x64"
           New-Item -ItemType Directory -Force "$pub/Images" | Out-Null
           Add-Type -AssemblyName System.Drawing
-          function Logo($w,$h,$path,$fs){ $b=New-Object System.Drawing.Bitmap $w,$h; $g=[System.Drawing.Graphics]::FromImage($b); $g.Clear([System.Drawing.ColorTranslator]::FromHtml("#E8540F")); $g.SmoothingMode='AntiAlias'; $g.TextRenderingHint='AntiAliasGridFit'; $f=New-Object System.Drawing.Font("Segoe UI",$fs,[System.Drawing.FontStyle]::Bold); $sf=New-Object System.Drawing.StringFormat; $sf.Alignment='Center'; $sf.LineAlignment='Center'; $g.DrawString("M",$f,[System.Drawing.Brushes]::White,(New-Object System.Drawing.RectangleF(0,0,$w,$h)),$sf); $b.Save($path,[System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $b.Dispose() }
-          Logo 44 44 "$pub/Images/Square44x44Logo.png" 20
-          Logo 150 150 "$pub/Images/Square150x150Logo.png" 78
-          Logo 50 50 "$pub/Images/StoreLogo.png" 24
+          # Store tile logos, resized from the real app icon in resources/.
+          $srcImg = [System.Drawing.Image]::FromFile("$env:GITHUB_WORKSPACE/resources/md_512.png")
+          function Logo($w,$h,$path){ $b=New-Object System.Drawing.Bitmap $w,$h; $g=[System.Drawing.Graphics]::FromImage($b); $g.InterpolationMode='HighQualityBicubic'; $g.SmoothingMode='HighQuality'; $g.PixelOffsetMode='HighQuality'; $g.Clear([System.Drawing.Color]::Transparent); $g.DrawImage($srcImg,(New-Object System.Drawing.Rectangle 0,0,$w,$h)); $b.Save($path,[System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $b.Dispose() }
+          Logo 44 44 "$pub/Images/Square44x44Logo.png"
+          Logo 150 150 "$pub/Images/Square150x150Logo.png"
+          Logo 50 50 "$pub/Images/StoreLogo.png"
+          $srcImg.Dispose()
           (Get-Content packaging/windows/AppxManifest.xml -Raw).Replace("__VERSION__", "$env:VERSION.0") | Set-Content "$pub/AppxManifest.xml"
           $sdk = Get-ChildItem "C:/Program Files (x86)/Windows Kits/10/bin" -Directory | Where-Object Name -match '^10\.' | Sort-Object Name -Descending | Select-Object -First 1
           $makeappx = Join-Path $sdk.FullName "x64/makeappx.exe"

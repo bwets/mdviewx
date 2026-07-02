@@ -7,6 +7,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>MarkdownBlaze</RootNamespace>
+    <!-- Embedded exe icon → Explorer, Start-menu/pinned shortcuts, file associations. -->
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- Opt out of the solution's central package management + warnings-as-errors. -->
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
@@ -22,6 +25,9 @@
   <ItemGroup>
     <Content Update="wwwroot\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="UserManual.md" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Shipped so the runtime can set the window icon (Windows loads the .ico via WM_SETICON; Linux uses the .png). -->
+    <Content Include="Assets\icon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\icon.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

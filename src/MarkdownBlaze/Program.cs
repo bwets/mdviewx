@@ -12,9 +12,6 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        Diag.Reset();
-        Diag.Log($"start; args=[{string.Join(", ", args)}]");
-
         var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
 
         builder.Services.AddLogging();
@@ -24,6 +21,7 @@ internal static class Program
         builder.Services.AddSingleton<HistoryStore>();
         builder.Services.AddSingleton<MarkdownService>();
         builder.Services.AddSingleton<NavigationService>();
+        builder.Services.AddSingleton<WindowHost>();
 
         builder.RootComponents.Add<App>("app");
 
@@ -33,10 +31,27 @@ internal static class Program
             .SetTitle("MarkdownBlaze")
             .SetSize(1280, 860);
 
+        // Set the window icon. On Windows, push the .ico onto the HWND via WM_SETICON once the native
+        // window exists (Photino's SetIconFile only sets it there); other platforms use SetIconFile.
+        if (OperatingSystem.IsWindows())
+        {
+            var ico = Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico");
+            if (File.Exists(ico))
+                app.MainWindow.RegisterWindowCreatedHandler((_, _) => NativeIcon.Apply(app.MainWindow.WindowHandle, ico));
+        }
+        else
+        {
+            var png = Path.Combine(AppContext.BaseDirectory, "Assets", "icon.png");
+            if (File.Exists(png))
+                try { app.MainWindow.SetIconFile(png); } catch { /* best-effort */ }
+        }
+
+        // Expose the window so components can use native dialogs (e.g. the "open file" button).
+        app.Services.GetRequiredService<WindowHost>().Window = app.MainWindow;
+
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             Console.Error.WriteLine("Unhandled exception: " + e.ExceptionObject);
 
-        Diag.Log("window configured; about to Run()");
         app.Run();
     }
 }

@@ -30,6 +30,50 @@
 
 html, body { height: 100%; margin: 0; overflow: hidden; }
 
+/* Startup splash (shown until Blazor mounts and replaces the <app> content). */
+.splash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: Canvas;
+    color: CanvasText;
+}
+.splash-logo {
+    width: 340px;
+    height: 340px;
+    max-width: 60vw;
+    max-height: 60vh;
+    object-fit: contain;
+    animation: splash-pulse 1.6s ease-in-out infinite;
+}
+.splash-name {
+    font-family: -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: .2px;
+}
+.splash-bar {
+    width: 180px;
+    height: 3px;
+    border-radius: 2px;
+    background: color-mix(in srgb, CanvasText 15%, transparent);
+    overflow: hidden;
+}
+.splash-bar span {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: 2px;
+    background: #E8540F;
+    animation: splash-slide 1.2s ease-in-out infinite;
+}
+@keyframes splash-pulse { 0%, 100% { opacity: .7; transform: scale(.98); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes splash-slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+
 /* Drag & drop overlay shown while a file hovers over the window. */
 body.drag-over::after {
     content: "Drop a .md file to open";

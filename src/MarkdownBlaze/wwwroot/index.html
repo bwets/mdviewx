@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <title>MarkdownBlaze</title>
+    <link rel="icon" href="logo.png" />
     <link href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" rel="stylesheet" />
     <link href="lib/highlight-theme.css" rel="stylesheet" />
     <link href="app.css" rel="stylesheet" />
 </head>
 <body>
-    <app>Loading…</app>
+    <!-- Splash: shown until Blazor mounts the root component and replaces this content. -->
+    <app>
+        <div class="splash">
+            <img class="splash-logo" src="logo.png" alt="MarkdownBlaze" />
+            <div class="splash-name">MarkdownBlaze</div>
+            <div class="splash-bar"><span></span></div>
+        </div>
+    </app>
 
     <!-- Offline assets (same bundles the desktop app ships) -->
     <script src="lib/highlight.full.min.js"></script>

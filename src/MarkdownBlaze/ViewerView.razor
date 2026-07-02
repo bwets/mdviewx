@@ -1,6 +1,7 @@
 @implements IDisposable
 @inject NavigationService Nav
 @inject PreferencesStore Prefs
+@inject WindowHost Window
 @inject IJSRuntime JS
 
 <div class="app-shell">
@@ -8,6 +9,7 @@
         <FluentButton Appearance="Appearance.Stealth" OnClick="ToggleSidebar" Title="Toggle sidebar (Ctrl+B)"><Ico Name="menu" /></FluentButton>
         <FluentButton Appearance="Appearance.Stealth" OnClick="@(() => Nav.Back())" Disabled="@(!Nav.CanBack)" Title="Back (Alt+Left)"><Ico Name="back" /></FluentButton>
         <FluentButton Appearance="Appearance.Stealth" OnClick="@(() => Nav.Forward())" Disabled="@(!Nav.CanForward)" Title="Forward (Alt+Right)"><Ico Name="forward" /></FluentButton>
+        <FluentButton Appearance="Appearance.Stealth" OnClick="OpenFile" Title="Open file (Ctrl+O)"><Ico Name="open" /></FluentButton>
         <FluentButton Appearance="Appearance.Stealth" OnClick="@(() => Nav.Reload())" Title="Refresh (F5)"><Ico Name="refresh" /></FluentButton>
         <FluentButton Appearance="Appearance.Stealth" OnClick="Print" Title="Print (Ctrl+P)"><Ico Name="print" /></FluentButton>
         <FluentButton Appearance="Appearance.Stealth" OnClick="OpenFolder" Title="Open containing folder"><Ico Name="folder" /></FluentButton>
@@ -155,6 +157,13 @@
 
     private async Task Print() => await JS.InvokeVoidAsync("mdPrint");
 
+    private async Task OpenFile()
+    {
+        var startDir = Nav.CurrentPath is not null ? Path.GetDirectoryName(Nav.CurrentPath) : null;
+        var path = await Window.PickFileAsync(startDir);
+        if (path is not null) Nav.Navigate(path);
+    }
+
     private void OpenFolder()
     {
         if (Nav.CurrentPath is not null) NavigationService.OpenContainingFolder(Nav.CurrentPath);
@@ -195,6 +204,7 @@
             case "alt+right": Nav.Forward(); break;
             case "f5": case "ctrl+r": Nav.Reload(); break;
             case "ctrl+p": _ = Print(); break;
+            case "ctrl+o": _ = OpenFile(); break;
             case "ctrl+b": ToggleSidebar(); InvokeAsync(StateHasChanged); break;
         }
     }
